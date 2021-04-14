@@ -89,9 +89,10 @@ private slots:
     void fitToWindow();
     void about();
     void updatePixelValueOnCursor(int x, int y, int r, int g, int b);
-    void openImageDirectory();
+    void openImagePath();
     QImage splitRGBImage(const QImage &inputImage);
     void toggleRGBImageDisplay(bool enable);
+    void toggleBilinearTransform(bool enable);
 
 private:
     void createActions();

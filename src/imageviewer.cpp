@@ -313,21 +313,21 @@ void ImageViewer::createActions()
 
     editMenu->addSeparator();
 
-    launchAct = editMenu->addAction(tr("Fol&der"), this, &ImageViewer::openImageDirectory);
-    launchAct->setShortcut(QKeySequence::fromString("Ctrl+D"));
+    launchAct = editMenu->addAction(tr("Ope&n Path"), this, &ImageViewer::openImagePath);
+    launchAct->setShortcut(QKeySequence::fromString("Ctrl+N"));
 
-    splitAct = editMenu->addAction(tr("Spli&t"), this, &ImageViewer::toggleRGBImageDisplay);
+    splitAct = editMenu->addAction(tr("Spli&t RGB"), this, &ImageViewer::toggleRGBImageDisplay);
     splitAct->setShortcut(QKeySequence::fromString("Ctrl+T"));
     splitAct->setEnabled(false);
     splitAct->setCheckable(true);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 
-    zoomInAct = viewMenu->addAction(tr("Zoom &In (25%)"), this, &ImageViewer::zoomIn);
+    zoomInAct = viewMenu->addAction(tr("Zoom &In (50%)"), this, &ImageViewer::zoomIn);
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
     zoomInAct->setEnabled(false);
 
-    zoomOutAct = viewMenu->addAction(tr("Zoom &Out (25%)"), this, &ImageViewer::zoomOut);
+    zoomOutAct = viewMenu->addAction(tr("Zoom &Out (50%)"), this, &ImageViewer::zoomOut);
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
     zoomOutAct->setEnabled(false);
 
@@ -341,6 +341,12 @@ void ImageViewer::createActions()
     fitToWindowAct->setEnabled(false);
     fitToWindowAct->setCheckable(true);
     fitToWindowAct->setShortcut(tr("Ctrl+F"));
+
+    QAction* bilinearTransform = viewMenu->addAction(tr("&Bilinear Transform"),
+                                                     this, &ImageViewer::toggleBilinearTransform);
+    bilinearTransform->setEnabled(true);
+    bilinearTransform->setCheckable(true);
+    bilinearTransform->setShortcut(tr("Ctrl+B"));
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(tr("&About"), this, &ImageViewer::about);
@@ -373,12 +379,12 @@ void ImageViewer::updatePixelValueOnCursor(int x, int y, int r, int g, int b)
             .arg(g, 3, 'f', 0, QChar('0'))
             .arg(b, 3, 'f', 0, QChar('0'));
         imgPixVal->setText(strCurrentPixelValOnCursor);
-        imgPixVal->move(QCursor::pos() + QPoint(10, 10));
+        imgPixVal->move(QCursor::pos() + QPoint(10, 16));
         imgPixVal->show();
     }
 }
 
-void ImageViewer::openImageDirectory()
+void ImageViewer::openImagePath()
 {
     if (!QFileInfo::exists(filePath)) {
         qDebug() << filePath << " not exists";
@@ -389,8 +395,7 @@ void ImageViewer::openImageDirectory()
 
     QDesktopServices::openUrl(QUrl::fromLocalFile(dir.absolutePath()));
 
-    qDebug() << "External app called";
-
+    statusBar()->showMessage(tr("Open path \"%1\"").arg(dir.absolutePath()));
 }
 
 QImage ImageViewer::splitRGBImage(const QImage &inputImage)
@@ -443,8 +448,10 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
     QImage buf;
     if (enable) {
         buf = this->splitRGBImage(image);
+        statusBar()->showMessage(tr("Split color image into R,G,B channels"));
     } else {
         buf = image;
+        statusBar()->showMessage(tr("Display color image"));
     }
 
     imageViewer->display(buf, true);
@@ -455,3 +462,12 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
     fitToWindow();
 }
 
+void ImageViewer::toggleBilinearTransform(bool enable)
+{
+    imageViewer->setBilinearTransform(enable);
+    if (enable) {
+        statusBar()->showMessage(tr("Enable Bilinear Transform (smooth image)"));
+    } else {
+        statusBar()->showMessage(tr("Disable Bilinear Transform (nearest neighbour)"));
+    }
+}
