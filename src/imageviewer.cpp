@@ -387,7 +387,7 @@ void ImageViewer::openImageDirectory()
 
     QDir dir = QFileInfo(filePath).dir();
 
-    QDesktopServices::openUrl(QUrl(dir.absolutePath()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(dir.absolutePath()));
 
     qDebug() << "External app called";
 
