@@ -113,7 +113,7 @@ private:
     QAction *saveAsAct;
     QAction *printAct;
     QAction *copyAct;
-    QAction *openAct;
+    QAction *launchAct;
     QAction *splitAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;

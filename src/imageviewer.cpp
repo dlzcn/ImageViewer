@@ -313,11 +313,12 @@ void ImageViewer::createActions()
 
     editMenu->addSeparator();
 
-    openAct = editMenu->addAction(tr("Fol&der"), this, &ImageViewer::openImageDirectory);
-    openAct->setShortcut(QKeySequence::fromString("Ctrl+D"));
+    launchAct = editMenu->addAction(tr("Fol&der"), this, &ImageViewer::openImageDirectory);
+    launchAct->setShortcut(QKeySequence::fromString("Ctrl+D"));
 
     splitAct = editMenu->addAction(tr("Spli&t"), this, &ImageViewer::toggleRGBImageDisplay);
     splitAct->setShortcut(QKeySequence::fromString("Ctrl+T"));
+    splitAct->setEnabled(false);
     splitAct->setCheckable(true);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
@@ -349,7 +350,7 @@ void ImageViewer::updateActions()
 {
     saveAsAct->setEnabled(!image.isNull());
     copyAct->setEnabled(!image.isNull());
-    openAct->setEnabled(!image.isNull());
+    launchAct->setEnabled(!image.isNull());
     splitAct->setEnabled(!image.isNull());
     zoomInAct->setEnabled(!fitToWindowAct->isChecked());
     zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
@@ -429,6 +430,8 @@ QImage ImageViewer::splitRGBImage(const QImage &inputImage)
             }
             return buf;
         }
+    } else {
+        return inputImage;
     }
 }
 
