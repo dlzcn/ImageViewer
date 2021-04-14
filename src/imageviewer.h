@@ -90,6 +90,8 @@ private slots:
     void about();
     void updatePixelValueOnCursor(int x, int y, int r, int g, int b);
     void openImageDirectory();
+    QImage splitRGBImage(const QImage &inputImage);
+    void toggleRGBImageDisplay(bool enable);
 
 private:
     void createActions();
@@ -111,6 +113,8 @@ private:
     QAction *saveAsAct;
     QAction *printAct;
     QAction *copyAct;
+    QAction *openAct;
+    QAction *splitAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;

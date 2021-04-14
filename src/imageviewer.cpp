@@ -128,8 +128,10 @@ void ImageViewer::setImage(const QImage &newImage)
         image.convertToColorSpace(QColorSpace::SRgb);
 
     imageViewer->display(image, true);
-    printAct->setEnabled(true);
+
     // change default behavior
+    printAct->setEnabled(true);
+    splitAct->setChecked(false);
     fitToWindowAct->setEnabled(true);
     fitToWindowAct->setChecked(true);
     fitToWindow();
@@ -309,8 +311,14 @@ void ImageViewer::createActions()
     QAction *pasteAct = editMenu->addAction(tr("&Paste"), this, &ImageViewer::paste);
     pasteAct->setShortcut(QKeySequence::Paste);
 
-    QAction *open = editMenu->addAction(tr("Other"), this, &ImageViewer::openImageDirectory);
-    open->setShortcut(QKeySequence::fromString("Ctrl+D"));
+    editMenu->addSeparator();
+
+    openAct = editMenu->addAction(tr("Fol&der"), this, &ImageViewer::openImageDirectory);
+    openAct->setShortcut(QKeySequence::fromString("Ctrl+D"));
+
+    splitAct = editMenu->addAction(tr("Spli&t"), this, &ImageViewer::toggleRGBImageDisplay);
+    splitAct->setShortcut(QKeySequence::fromString("Ctrl+T"));
+    splitAct->setCheckable(true);
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 
@@ -341,6 +349,8 @@ void ImageViewer::updateActions()
 {
     saveAsAct->setEnabled(!image.isNull());
     copyAct->setEnabled(!image.isNull());
+    openAct->setEnabled(!image.isNull());
+    splitAct->setEnabled(!image.isNull());
     zoomInAct->setEnabled(!fitToWindowAct->isChecked());
     zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
     normalSizeAct->setEnabled(!fitToWindowAct->isChecked());
@@ -355,6 +365,8 @@ void ImageViewer::updatePixelValueOnCursor(int x, int y, int r, int g, int b)
     } else if(image.isNull()) {
         imgPixVal->hide();
     } else {
+        x = x % image.width();
+        y = y % image.height();
         QString strCurrentPixelValOnCursor = tr("X: %1\tY: %2\n %3,%4,%5").arg(x, 4).arg(y, 4)
             .arg(r, 3, 'f', 0, QChar('0'))
             .arg(g, 3, 'f', 0, QChar('0'))
@@ -379,3 +391,64 @@ void ImageViewer::openImageDirectory()
     qDebug() << "External app called";
 
 }
+
+QImage ImageViewer::splitRGBImage(const QImage &inputImage)
+{
+    if (!inputImage.isGrayscale()) {
+        QImage src = image.convertToFormat(QImage::Format_RGB888);
+        int width, height;
+        if (image.width() < 2 * image.height()) {
+            width = 3 * image.width();
+            height = image.height();
+            QImage buf(width, height, QImage::Format_Grayscale8);
+            for (int y = 0; y < image.height(); y++) {
+                unsigned char* src_ptr = src.scanLine(y);
+                unsigned char* dst_ptr = buf.scanLine(y);
+                int offset_x = image.width();
+                for (int x = 0, idx = 0; x < image.width(); x++, idx += 3) {
+                    dst_ptr[x] = src_ptr[idx];
+                    dst_ptr[x + offset_x] = src_ptr[idx + 1];
+                    dst_ptr[x + offset_x + offset_x] = src_ptr[idx + 2];
+                }
+            }
+            return buf;
+        } else {
+            width = image.width();
+            height= 3 * image.height();
+            QImage buf(width, height, QImage::Format_Grayscale8);
+            for (int y = 0; y < image.height(); y++) {
+                unsigned char* src_ptr = src.scanLine(y);
+                unsigned char* dst_chn1_ptr = buf.scanLine(y);
+                unsigned char* dst_chn2_ptr = buf.scanLine(y + image.height());
+                unsigned char* dst_chn3_ptr = buf.scanLine(y + 2 * image.height());
+                for (int x = 0, idx = 0; x < image.width(); x++, idx += 3) {
+                    dst_chn1_ptr[x] = src_ptr[idx];
+                    dst_chn2_ptr[x] = src_ptr[idx + 1];
+                    dst_chn3_ptr[x] = src_ptr[idx + 2];
+                }
+            }
+            return buf;
+        }
+    }
+}
+
+void ImageViewer::toggleRGBImageDisplay(bool enable)
+{
+    if (image.isNull() || image.isGrayscale())
+        return;
+
+    QImage buf;
+    if (enable) {
+        buf = this->splitRGBImage(image);
+    } else {
+        buf = image;
+    }
+
+    imageViewer->display(buf, true);
+    printAct->setEnabled(true);
+    // change default behavior
+    fitToWindowAct->setEnabled(true);
+    fitToWindowAct->setChecked(true);
+    fitToWindow();
+}
+
