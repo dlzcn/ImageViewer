@@ -63,6 +63,7 @@
 #include "QImageViewer.h"
 
 QT_BEGIN_NAMESPACE
+class QSettings;
 class QAction;
 class QLabel;
 class QMenu;
@@ -105,6 +106,7 @@ private:
     QImageViewer *imageViewer;
     QLabel *imgPixVal;
     QString filePath;
+    QSettings *setting;
 
     bool mouseInView = false;
 #if defined(QT_PRINTSUPPORT_LIB) && QT_CONFIG(printer)

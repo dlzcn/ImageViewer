@@ -67,6 +67,7 @@
 #include <QScrollBar>
 #include <QStandardPaths>
 #include <QStatusBar>
+#include <QSettings>
 
 #if defined(QT_PRINTSUPPORT_LIB)
 #  include <QtPrintSupport/qtprintsupportglobal.h>
@@ -81,6 +82,11 @@ ImageViewer::ImageViewer(QWidget *parent)
    , imageViewer(new QImageViewer(nullptr))
    , imgPixVal(nullptr)
 {
+    setting = new QSettings(
+        QSettings::NativeFormat,
+        QSettings::UserScope,
+        "HF_AIO", "ImageViewer",
+        this);
 
     imgPixVal = new QLabel(tr("X: 0\tY: 0\n"),
                            this,
@@ -148,20 +154,21 @@ bool ImageViewer::saveFile(const QString &fileName)
                                  .arg(QDir::toNativeSeparators(fileName)), writer.errorString());
         return false;
     }
+    QFileInfo imgFile(fileName);
+    setting->setValue("prev_img_save_dir", imgFile.dir().absolutePath());
     const QString message = tr("Wrote \"%1\"").arg(QDir::toNativeSeparators(fileName));
     statusBar()->showMessage(message);
     return true;
 }
 
 
-static void initializeImageFileDialog(QFileDialog &dialog, QFileDialog::AcceptMode acceptMode)
+static void initializeImageFileDialog(QFileDialog &dialog, QFileDialog::AcceptMode acceptMode, const QString& directory = "")
 {
-    static bool firstDialog = true;
-
-    if (firstDialog) {
-        firstDialog = false;
+    if (directory.isEmpty()) {
         const QStringList picturesLocations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
         dialog.setDirectory(picturesLocations.isEmpty() ? QDir::currentPath() : picturesLocations.last());
+    } else {
+        dialog.setDirectory(directory);
     }
 
     QStringList mimeTypeFilters;
@@ -178,6 +185,7 @@ static void initializeImageFileDialog(QFileDialog &dialog, QFileDialog::AcceptMo
 
 void ImageViewer::open()
 {
+
     QFileDialog dialog(this, tr("Open File"));
     initializeImageFileDialog(dialog, QFileDialog::AcceptOpen);
 
@@ -186,8 +194,9 @@ void ImageViewer::open()
 
 void ImageViewer::saveAs()
 {
+    QString directory = setting->value("prev_img_save_dir", "").toString();
     QFileDialog dialog(this, tr("Save File As"));
-    initializeImageFileDialog(dialog, QFileDialog::AcceptSave);
+    initializeImageFileDialog(dialog, QFileDialog::AcceptSave, directory);
 
     while (dialog.exec() == QDialog::Accepted && !saveFile(dialog.selectedFiles().first())) {}
 }
