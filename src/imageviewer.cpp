@@ -103,6 +103,8 @@ ImageViewer::ImageViewer(QWidget *parent)
 
     connect(imageViewer, &QImageViewer::pixelValueOnCursor,
         this, QOverload<int,int,int,int,int>::of(&ImageViewer::updatePixelValueOnCursor));
+    connect(imageViewer, &QImageViewer::filesDropped,
+            this, &ImageViewer::loadDroppedFiles);
 }
 
 bool ImageViewer::loadFile(const QString &fileName)
@@ -479,4 +481,12 @@ void ImageViewer::toggleBilinearTransform(bool enable)
     } else {
         statusBar()->showMessage(tr("Disable Bilinear Transform (nearest neighbour)"));
     }
+}
+
+void ImageViewer::loadDroppedFiles(QList<QUrl> files)
+{
+    if (files.empty())
+        return;
+
+    loadFile(files.front().toLocalFile());
 }

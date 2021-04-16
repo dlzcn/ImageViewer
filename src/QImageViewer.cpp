@@ -34,6 +34,7 @@ QImageViewer::QImageViewer(QWidget *parent, bool useGL)
     this->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     //this->setRenderHint(QPainter::Antialiasing);
+    this->setAcceptDrops(true);
 }
 
 QImageViewer::~QImageViewer()
@@ -321,4 +322,25 @@ void QImageViewer::zoomFit()
 double QImageViewer::getZoomScale() const
 {
     return transform().m11(); // m22() for y, m33() is the factor, not used here
+}
+
+void QImageViewer::dragEnterEvent(QDragEnterEvent * e)
+{
+    if (e->mimeData()->hasUrls()) {
+        e->setAccepted(true);
+        QGraphicsView::update();
+    }
+}
+
+void QImageViewer::dragMoveEvent(QDragMoveEvent *e)
+{
+    if (e->mimeData()->hasUrls()) {
+        e->setAccepted(true);
+        QGraphicsView::update();
+    }
+}
+
+void QImageViewer::dropEvent(QDropEvent *e)
+{
+    emit filesDropped(e->mimeData()->urls());
 }

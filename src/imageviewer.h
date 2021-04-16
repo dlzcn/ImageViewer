@@ -94,6 +94,7 @@ private slots:
     QImage splitRGBImage(const QImage &inputImage);
     void toggleRGBImageDisplay(bool enable);
     void toggleBilinearTransform(bool enable);
+    void loadDroppedFiles(QList<QUrl> files);
 
 private:
     void createActions();

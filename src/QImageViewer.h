@@ -48,10 +48,14 @@ protected:
     virtual void wheelEvent(QWheelEvent* e);
     virtual void resizeEvent(QResizeEvent *e);
     virtual void leaveEvent(QEvent* e);
+    virtual void dragEnterEvent(QDragEnterEvent * e);
+    virtual void dragMoveEvent(QDragMoveEvent *e);
+    virtual void dropEvent(QDropEvent *e);
 
 signals:
     void pixelValueOnCursor(int x, int y, int r, int g, int b);
     void lineProfileReady(int start_x, int start_y, int end_x, int end_y);
+    void filesDropped(QList<QUrl> fileUrl);
 private:
     bool best_fit_;
     double zoom_op_scale_;
