@@ -68,6 +68,7 @@
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QSettings>
+#include <QProgressBar>
 
 #if defined(QT_PRINTSUPPORT_LIB)
 #  include <QtPrintSupport/qtprintsupportglobal.h>
@@ -76,6 +77,8 @@
 #    include <QPrintDialog>
 #  endif
 #endif
+
+#include "splitrgbimagetask.h"
 
 ImageViewer::ImageViewer(QWidget *parent)
    : QMainWindow(parent)
@@ -88,6 +91,11 @@ ImageViewer::ImageViewer(QWidget *parent)
         "HF_AIO", "ImageViewer",
         this);
 
+    progressBar = new QProgressBar(this);
+    progressBar->setFixedSize(200, 16);
+    progressBar->setToolTip(tr("image processing is ongoing!"));
+    progressBar->hide();
+
     imgPixVal = new QLabel(tr("X: 0\tY: 0\n"),
                            this,
                            Qt::Tool | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint);
@@ -99,6 +107,7 @@ ImageViewer::ImageViewer(QWidget *parent)
 
     createActions();
 
+    statusBar()->insertPermanentWidget(0, progressBar);
     resize(QGuiApplication::primaryScreen()->availableSize() * 2 / 5);
 
     connect(imageViewer, &QImageViewer::pixelValueOnCursor,
@@ -409,48 +418,6 @@ void ImageViewer::openImagePath()
     statusBar()->showMessage(tr("Open path \"%1\"").arg(dir.absolutePath()));
 }
 
-QImage ImageViewer::splitRGBImage(const QImage &inputImage)
-{
-    if (!inputImage.isGrayscale()) {
-        QImage src = image.convertToFormat(QImage::Format_RGB888);
-        int width, height;
-        if (image.width() < 2 * image.height()) {
-            width = 3 * image.width();
-            height = image.height();
-            QImage buf(width, height, QImage::Format_Grayscale8);
-            for (int y = 0; y < image.height(); y++) {
-                unsigned char* src_ptr = src.scanLine(y);
-                unsigned char* dst_ptr = buf.scanLine(y);
-                int offset_x = image.width();
-                for (int x = 0, idx = 0; x < image.width(); x++, idx += 3) {
-                    dst_ptr[x] = src_ptr[idx];
-                    dst_ptr[x + offset_x] = src_ptr[idx + 1];
-                    dst_ptr[x + offset_x + offset_x] = src_ptr[idx + 2];
-                }
-            }
-            return buf;
-        } else {
-            width = image.width();
-            height= 3 * image.height();
-            QImage buf(width, height, QImage::Format_Grayscale8);
-            for (int y = 0; y < image.height(); y++) {
-                unsigned char* src_ptr = src.scanLine(y);
-                unsigned char* dst_chn1_ptr = buf.scanLine(y);
-                unsigned char* dst_chn2_ptr = buf.scanLine(y + image.height());
-                unsigned char* dst_chn3_ptr = buf.scanLine(y + 2 * image.height());
-                for (int x = 0, idx = 0; x < image.width(); x++, idx += 3) {
-                    dst_chn1_ptr[x] = src_ptr[idx];
-                    dst_chn2_ptr[x] = src_ptr[idx + 1];
-                    dst_chn3_ptr[x] = src_ptr[idx + 2];
-                }
-            }
-            return buf;
-        }
-    } else {
-        return inputImage;
-    }
-}
-
 void ImageViewer::toggleRGBImageDisplay(bool enable)
 {
     if (image.isNull() || image.isGrayscale())
@@ -458,8 +425,31 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
 
     QImage buf;
     if (enable) {
-        buf = this->splitRGBImage(image);
-        statusBar()->showMessage(tr("Split color image into R,G,B channels"));
+        int size = image.size().width() * image.size().height();
+        if(size <= setting->value("large_image_size", 8192*8192).toInt()) {
+            buf = splitRGBImage(image);
+            statusBar()->showMessage(tr("Split color image into R,G,B channels"));
+        } else {
+            QThread* thread = new QThread( );
+            SplitRGBImageTask* task = new SplitRGBImageTask();
+            task->setImage(image);
+
+            // move the task object to the thread BEFORE connecting any signal/slots
+            task->moveToThread(thread);
+
+            connect(thread, &QThread::started, task, &SplitRGBImageTask::run);
+            connect(task, &SplitRGBImageTask::workFinished, thread, &QThread::quit);
+            connect(task, &SplitRGBImageTask::done, this, &ImageViewer::displayImage);
+
+            // automatically delete thread and task object when work is done:
+            connect(task, &SplitRGBImageTask::workFinished, task, &SplitRGBImageTask::deleteLater);
+            connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+            thread->start();
+            progressBar->show();
+            progressBar->setRange(0, 0);
+            return;
+        }
     } else {
         buf = image;
         statusBar()->showMessage(tr("Display color image"));
@@ -472,6 +462,21 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
     fitToWindowAct->setChecked(true);
     fitToWindow();
 }
+
+    void ImageViewer::displayImage(QImage image_)
+    {
+        progressBar->reset();
+        progressBar->hide();
+        image = image_;
+        statusBar()->showMessage(tr("Split color image into R,G,B channels"));
+
+        imageViewer->display(image, true);
+        printAct->setEnabled(true);
+        // change default behavior
+        fitToWindowAct->setEnabled(true);
+        fitToWindowAct->setChecked(true);
+        fitToWindow();
+    }
 
 void ImageViewer::toggleBilinearTransform(bool enable)
 {

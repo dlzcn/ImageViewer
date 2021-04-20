@@ -67,6 +67,7 @@ class QSettings;
 class QAction;
 class QLabel;
 class QMenu;
+class QProgressBar;
 QT_END_NAMESPACE
 
 //! [0]
@@ -91,9 +92,9 @@ private slots:
     void about();
     void updatePixelValueOnCursor(int x, int y, int r, int g, int b);
     void openImagePath();
-    QImage splitRGBImage(const QImage &inputImage);
     void toggleRGBImageDisplay(bool enable);
     void toggleBilinearTransform(bool enable);
+    void displayImage(QImage image);
     void loadDroppedFiles(QList<QUrl> files);
 
 private:
@@ -108,6 +109,7 @@ private:
     QLabel *imgPixVal;
     QString filePath;
     QSettings *setting;
+    QProgressBar *progressBar;
 
     bool mouseInView = false;
 #if defined(QT_PRINTSUPPORT_LIB) && QT_CONFIG(printer)
