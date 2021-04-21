@@ -101,6 +101,7 @@ ImageViewer::ImageViewer(QWidget *parent)
                            Qt::Tool | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint);
     imgPixVal->setAttribute(Qt::WA_ShowWithoutActivating);
     imgPixVal->setAlignment(Qt::AlignCenter);
+    imgPixVal->setFont(QFont("Arial", 10));
     imgPixVal->hide();
 
     setCentralWidget(imageViewer);
