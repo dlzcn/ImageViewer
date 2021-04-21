@@ -95,6 +95,7 @@ private slots:
     void updatePixelValueOnCursor(int x, int y, int r, int g, int b);
     void openImagePath();
     void toggleRGBImageDisplay(bool enable);
+    void toggleGrayscaleImageDisplay(bool enable);
     void toggleBilinearTransform(bool enable);
     void displayImage(const QPixmap& image);
     void loadDroppedFiles(QList<QUrl> files);
@@ -124,6 +125,7 @@ private:
     QAction *copyAct;
     QAction *launchAct;
     QAction *splitAct;
+    QAction *convertAct;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;

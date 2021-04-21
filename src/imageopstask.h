@@ -1,5 +1,5 @@
-#ifndef SPLITRGBIMAGETASK_H
-#define SPLITRGBIMAGETASK_H
+#ifndef IMAGEOPSTASK_H
+#define IMAGEOPSTASK_H
 
 #include <QObject>
 #include <QImage>
@@ -22,4 +22,4 @@ private:
     QImage image;
 };
 
-#endif // SPLITRGBIMAGETASK_H
+#endif // IMAGEOPSTASK_H

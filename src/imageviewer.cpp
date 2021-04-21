@@ -78,7 +78,7 @@
 #  endif
 #endif
 
-#include "splitrgbimagetask.h"
+#include "imageopstask.h"
 
 ImageViewer::ImageViewer(QWidget *parent)
    : QMainWindow(parent)
@@ -151,6 +151,7 @@ void ImageViewer::setImage(const QImage &newImage)
     // change default behavior
     printAct->setEnabled(true);
     splitAct->setChecked(false);
+    convertAct->setChecked(false);
     fitToWindowAct->setEnabled(true);
     fitToWindowAct->setChecked(true);
     fitToWindow();
@@ -335,13 +336,20 @@ void ImageViewer::createActions()
 
     editMenu->addSeparator();
 
-    launchAct = editMenu->addAction(tr("Ope&n Path"), this, &ImageViewer::openImagePath);
-    launchAct->setShortcut(QKeySequence::fromString("Ctrl+N"));
-
     splitAct = editMenu->addAction(tr("Spli&t RGB"), this, &ImageViewer::toggleRGBImageDisplay);
     splitAct->setShortcut(QKeySequence::fromString("Ctrl+T"));
     splitAct->setEnabled(false);
     splitAct->setCheckable(true);
+
+    convertAct = editMenu->addAction(tr("Convert Mono"), this, &ImageViewer::toggleGrayscaleImageDisplay);
+    convertAct->setShortcut(QKeySequence::fromString("Ctrl+M"));
+    convertAct->setEnabled(false);
+    convertAct->setCheckable(true);
+
+    editMenu->addSeparator();
+
+    launchAct = editMenu->addAction(tr("Ope&n Path"), this, &ImageViewer::openImagePath);
+    launchAct->setShortcut(QKeySequence::fromString("Ctrl+N"));
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
 
@@ -380,6 +388,7 @@ void ImageViewer::updateActions()
     copyAct->setEnabled(!image.isNull());
     launchAct->setEnabled(!image.isNull());
     splitAct->setEnabled(!image.isNull());
+    convertAct->setEnabled(!image.isNull());
     zoomInAct->setEnabled(!fitToWindowAct->isChecked());
     zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
     normalSizeAct->setEnabled(!fitToWindowAct->isChecked());
@@ -422,8 +431,10 @@ void ImageViewer::openImagePath()
 
 void ImageViewer::toggleRGBImageDisplay(bool enable)
 {
-    if (image.isNull() || image.isGrayscale())
+    if (image.isNull() || image.isGrayscale()) {
+        statusBar()->showMessage(tr("Split RGB operation ignored as source image is null or grayscale image"));
         return;
+    }
 
     int size = image.size().width() * image.size().height();
     bool large_image = size > setting->value("large_image_size", 8192*8192).toInt() ? true : false;
@@ -467,9 +478,6 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
     }
 
     imageViewer->display(buf, true);
-    printAct->setEnabled(true);
-    // change default behavior
-    fitToWindowAct->setEnabled(true);
     fitToWindowAct->setChecked(true);
     fitToWindow();
 
@@ -489,9 +497,24 @@ void ImageViewer::displayImage(const QPixmap& image_)
     statusBar()->showMessage(tr("Split color image into R,G,B channels"));
 
     imageViewer->display(image_, true);
-    printAct->setEnabled(true);
-    // change default behavior
-    fitToWindowAct->setEnabled(true);
+    fitToWindowAct->setChecked(true);
+    fitToWindow();
+}
+
+void ImageViewer::toggleGrayscaleImageDisplay(bool enable)
+{
+    if (image.isNull() || image.isGrayscale()) {
+        statusBar()->showMessage(tr("Convert operation ignored as source image is null or grayscale image"));
+        return;
+    }
+
+    QImage buf;
+    if (enable)
+        buf = image.convertToFormat(QImage::Format_Grayscale8);
+    else
+        buf = image;
+
+    imageViewer->display(buf, true);
     fitToWindowAct->setChecked(true);
     fitToWindow();
 }
