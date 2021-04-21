@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QImage>
+#include <QPixmap>
 
 QImage splitRGBImage(const QImage &inputImage);
 
@@ -15,7 +16,7 @@ public:
 public slots:
     void run();
 signals:
-    void done(QImage RGBImage);
+    void resultReady(QPixmap RGBPix);
     void workFinished();
 private:
     QImage image;

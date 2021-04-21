@@ -114,6 +114,8 @@ ImageViewer::ImageViewer(QWidget *parent)
         this, QOverload<int,int,int,int,int>::of(&ImageViewer::updatePixelValueOnCursor));
     connect(imageViewer, &QImageViewer::filesDropped,
             this, &ImageViewer::loadDroppedFiles);
+
+    filter = new BusyAppFilter(this);
 }
 
 bool ImageViewer::loadFile(const QString &fileName)
@@ -423,14 +425,15 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
     if (image.isNull() || image.isGrayscale())
         return;
 
+    int size = image.size().width() * image.size().height();
+    bool large_image = size > setting->value("large_image_size", 8192*8192).toInt() ? true : false;
     QImage buf;
     if (enable) {
-        int size = image.size().width() * image.size().height();
-        if(size <= setting->value("large_image_size", 8192*8192).toInt()) {
+        if(!large_image) {
             buf = splitRGBImage(image);
             statusBar()->showMessage(tr("Split color image into R,G,B channels"));
         } else {
-            QThread* thread = new QThread( );
+            QThread* thread = new QThread();
             SplitRGBImageTask* task = new SplitRGBImageTask();
             task->setImage(image);
 
@@ -439,20 +442,28 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
 
             connect(thread, &QThread::started, task, &SplitRGBImageTask::run);
             connect(task, &SplitRGBImageTask::workFinished, thread, &QThread::quit);
-            connect(task, &SplitRGBImageTask::done, this, &ImageViewer::displayImage);
+            connect(task, &SplitRGBImageTask::resultReady, this, &ImageViewer::displayImage);
 
             // automatically delete thread and task object when work is done:
             connect(task, &SplitRGBImageTask::workFinished, task, &SplitRGBImageTask::deleteLater);
             connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 
-            thread->start();
+            qApp->setOverrideCursor(QCursor(Qt::WaitCursor));
+            installEventFilter(filter);
+
             progressBar->show();
             progressBar->setRange(0, 0);
+            thread->start();
             return;
         }
     } else {
         buf = image;
         statusBar()->showMessage(tr("Display color image"));
+    }
+
+    if (large_image) {
+        qApp->setOverrideCursor(QCursor(Qt::WaitCursor));
+        installEventFilter(filter);
     }
 
     imageViewer->display(buf, true);
@@ -461,22 +472,29 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
     fitToWindowAct->setEnabled(true);
     fitToWindowAct->setChecked(true);
     fitToWindow();
+
+    if (large_image) {
+        removeEventFilter(filter);
+        qApp->restoreOverrideCursor();
+    }
 }
 
-    void ImageViewer::displayImage(QImage image_)
-    {
-        progressBar->reset();
-        progressBar->hide();
-        image = image_;
-        statusBar()->showMessage(tr("Split color image into R,G,B channels"));
+void ImageViewer::displayImage(const QPixmap& image_)
+{
+    removeEventFilter(filter);
+    qApp->restoreOverrideCursor();
 
-        imageViewer->display(image, true);
-        printAct->setEnabled(true);
-        // change default behavior
-        fitToWindowAct->setEnabled(true);
-        fitToWindowAct->setChecked(true);
-        fitToWindow();
-    }
+    progressBar->reset();
+    progressBar->hide();
+    statusBar()->showMessage(tr("Split color image into R,G,B channels"));
+
+    imageViewer->display(image_, true);
+    printAct->setEnabled(true);
+    // change default behavior
+    fitToWindowAct->setEnabled(true);
+    fitToWindowAct->setChecked(true);
+    fitToWindow();
+}
 
 void ImageViewer::toggleBilinearTransform(bool enable)
 {

@@ -61,6 +61,7 @@
 #  endif
 #endif
 #include "QImageViewer.h"
+#include "busyappfilter.h"
 
 QT_BEGIN_NAMESPACE
 class QSettings;
@@ -68,6 +69,7 @@ class QAction;
 class QLabel;
 class QMenu;
 class QProgressBar;
+class QPixmap;
 QT_END_NAMESPACE
 
 //! [0]
@@ -94,7 +96,7 @@ private slots:
     void openImagePath();
     void toggleRGBImageDisplay(bool enable);
     void toggleBilinearTransform(bool enable);
-    void displayImage(QImage image);
+    void displayImage(const QPixmap& image);
     void loadDroppedFiles(QList<QUrl> files);
 
 private:
@@ -110,6 +112,7 @@ private:
     QString filePath;
     QSettings *setting;
     QProgressBar *progressBar;
+    BusyAppFilter *filter;
 
     bool mouseInView = false;
 #if defined(QT_PRINTSUPPORT_LIB) && QT_CONFIG(printer)

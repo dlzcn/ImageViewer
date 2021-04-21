@@ -4,9 +4,11 @@ qtHaveModule(printsupport): QT += printsupport
 
 HEADERS       = imageviewer.h \
     QImageViewer.h \
+    busyappfilter.h \
     splitrgbimagetask.h
 SOURCES       = imageviewer.cpp \
                 QImageViewer.cpp \
+                busyappfilter.cpp \
                 main.cpp \
                 splitrgbimagetask.cpp
 
