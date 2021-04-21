@@ -8,3 +8,4 @@ Supported functions:
 - Print
 - Open image folder
 
+The icon is from https://drasite.com/flat-remix which is Licensed under GPL3.
