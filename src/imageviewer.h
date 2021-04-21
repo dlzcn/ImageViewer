@@ -94,10 +94,14 @@ private slots:
     void about();
     void updatePixelValueOnCursor(int x, int y, int r, int g, int b);
     void openImagePath();
+
+    void displayImage(bool enable);
+    void displayImage(const QPixmap& image);
+
     void toggleRGBImageDisplay(bool enable);
+    void toggleLabImageDisplay(bool enable);
     void toggleGrayscaleImageDisplay(bool enable);
     void toggleBilinearTransform(bool enable);
-    void displayImage(const QPixmap& image);
     void loadDroppedFiles(QList<QUrl> files);
 
 private:
@@ -124,8 +128,10 @@ private:
     QAction *printAct;
     QAction *copyAct;
     QAction *launchAct;
-    QAction *splitAct;
+    QAction *dispOrigAct;
     QAction *convertAct;
+    QAction *split1Act;
+    QAction *split2Act;
     QAction *zoomInAct;
     QAction *zoomOutAct;
     QAction *normalSizeAct;

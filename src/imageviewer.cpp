@@ -146,15 +146,15 @@ void ImageViewer::setImage(const QImage &newImage)
     if (image.colorSpace().isValid())
         image.convertToColorSpace(QColorSpace::SRgb);
 
-    imageViewer->display(image, true);
-
     // change default behavior
     printAct->setEnabled(true);
-    splitAct->setChecked(false);
-    convertAct->setChecked(false);
+    dispOrigAct->setChecked(true);
     fitToWindowAct->setEnabled(true);
-    fitToWindowAct->setChecked(true);
-    fitToWindow();
+
+    displayImage(true);
+//    splitAct->setChecked(false);
+//    convertAct->setChecked(false);
+//    mergeAct->setChecked(false);
 }
 
 
@@ -336,15 +336,32 @@ void ImageViewer::createActions()
 
     editMenu->addSeparator();
 
-    splitAct = editMenu->addAction(tr("Spli&t RGB"), this, &ImageViewer::toggleRGBImageDisplay);
-    splitAct->setShortcut(QKeySequence::fromString("Ctrl+T"));
-    splitAct->setEnabled(false);
-    splitAct->setCheckable(true);
+    dispOrigAct = editMenu->addAction(tr("Original"), this, QOverload<bool>::of(&ImageViewer::displayImage));
+    dispOrigAct->setShortcut(QKeySequence::fromString("Alt+O"));
+    dispOrigAct->setEnabled(false);
+    dispOrigAct->setCheckable(true);
 
-    convertAct = editMenu->addAction(tr("Convert Mono"), this, &ImageViewer::toggleGrayscaleImageDisplay);
-    convertAct->setShortcut(QKeySequence::fromString("Ctrl+M"));
+    split1Act = editMenu->addAction(tr("Spli&t RGB"), this, &ImageViewer::toggleRGBImageDisplay);
+    split1Act->setShortcut(QKeySequence::fromString("Alt+R"));
+    split1Act->setEnabled(false);
+    split1Act->setCheckable(true);
+
+    split2Act = editMenu->addAction(tr("Split Lab"), this, &ImageViewer::toggleLabImageDisplay);
+    split2Act->setShortcut(QKeySequence::fromString("Alt+L"));
+    split2Act->setEnabled(false);
+    split2Act->setCheckable(true);
+
+    convertAct = editMenu->addAction(tr("&Illuminance"), this, &ImageViewer::toggleGrayscaleImageDisplay);
+    convertAct->setShortcut(QKeySequence::fromString("Alt+I"));
     convertAct->setEnabled(false);
     convertAct->setCheckable(true);
+
+    QActionGroup *actGrp = new QActionGroup(this);
+    actGrp->addAction(dispOrigAct);
+    actGrp->addAction(split1Act);
+    actGrp->addAction(split2Act);
+    actGrp->addAction(convertAct);
+    actGrp->setExclusive(true);
 
     editMenu->addSeparator();
 
@@ -387,8 +404,10 @@ void ImageViewer::updateActions()
     saveAsAct->setEnabled(!image.isNull());
     copyAct->setEnabled(!image.isNull());
     launchAct->setEnabled(!image.isNull());
-    splitAct->setEnabled(!image.isNull());
+    dispOrigAct->setEnabled(!image.isNull());
+    split1Act->setEnabled(!image.isNull());
     convertAct->setEnabled(!image.isNull());
+    split2Act->setEnabled(!image.isNull());
     zoomInAct->setEnabled(!fitToWindowAct->isChecked());
     zoomOutAct->setEnabled(!fitToWindowAct->isChecked());
     normalSizeAct->setEnabled(!fitToWindowAct->isChecked());
@@ -429,6 +448,29 @@ void ImageViewer::openImagePath()
     statusBar()->showMessage(tr("Open path \"%1\"").arg(dir.absolutePath()));
 }
 
+void ImageViewer::displayImage(bool)
+{
+    if (image.isNull())
+        return;
+
+    int size = image.size().width() * image.size().height();
+    bool large_image = size > setting->value("large_image_size", 8192*8192).toInt() ? true : false;
+
+    if (large_image) {
+        qApp->setOverrideCursor(QCursor(Qt::WaitCursor));
+        installEventFilter(filter);
+    }
+
+    imageViewer->display(image, true);
+    fitToWindowAct->setChecked(true);
+    fitToWindow();
+
+    if (large_image) {
+        removeEventFilter(filter);
+        qApp->restoreOverrideCursor();
+    }
+}
+
 void ImageViewer::toggleRGBImageDisplay(bool enable)
 {
     if (image.isNull() || image.isGrayscale()) {
@@ -453,7 +495,7 @@ void ImageViewer::toggleRGBImageDisplay(bool enable)
 
             connect(thread, &QThread::started, task, &SplitRGBImageTask::run);
             connect(task, &SplitRGBImageTask::workFinished, thread, &QThread::quit);
-            connect(task, &SplitRGBImageTask::resultReady, this, &ImageViewer::displayImage);
+            connect(task, &SplitRGBImageTask::resultReady, this, QOverload<const QPixmap&>::of(&ImageViewer::displayImage));
 
             // automatically delete thread and task object when work is done:
             connect(task, &SplitRGBImageTask::workFinished, task, &SplitRGBImageTask::deleteLater);
@@ -494,7 +536,7 @@ void ImageViewer::displayImage(const QPixmap& image_)
 
     progressBar->reset();
     progressBar->hide();
-    statusBar()->showMessage(tr("Split color image into R,G,B channels"));
+    statusBar()->showMessage(tr("Image operation done"));
 
     imageViewer->display(image_, true);
     fitToWindowAct->setChecked(true);
@@ -517,6 +559,67 @@ void ImageViewer::toggleGrayscaleImageDisplay(bool enable)
     imageViewer->display(buf, true);
     fitToWindowAct->setChecked(true);
     fitToWindow();
+}
+
+void ImageViewer::toggleLabImageDisplay(bool enable)
+{
+    if (image.isNull() || image.isGrayscale()) {
+        statusBar()->showMessage(tr("Split Lab operation ignored as source image is null or grayscale image"));
+        return;
+    }
+
+    // double r = setting->value("merge_rg_r", 0.33).toDouble();
+    // double g = setting->value("merge_rg_g", 0.66).toDouble();
+
+    int size = image.size().width() * image.size().height();
+    bool large_image = size > setting->value("large_image_size", 8192*8192).toInt() ? true : false;
+    QImage buf;
+    if (enable) {
+        if(!large_image) {
+            buf = splitLabImageTask(image);
+            statusBar()->showMessage(tr("Split color image into Lab space"));
+        } else {
+            QThread* thread = new QThread();
+            SplitLabImageTask* task = new SplitLabImageTask();
+            task->setImage(image);
+
+            // move the task object to the thread BEFORE connecting any signal/slots
+            task->moveToThread(thread);
+
+            connect(thread, &QThread::started, task, &SplitLabImageTask::run);
+            connect(task, &SplitLabImageTask::workFinished, thread, &QThread::quit);
+            connect(task, &SplitLabImageTask::resultReady, this, QOverload<const QPixmap&>::of(&ImageViewer::displayImage));
+
+            // automatically delete thread and task object when work is done:
+            connect(task, &SplitLabImageTask::workFinished, task, &SplitLabImageTask::deleteLater);
+            connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+            qApp->setOverrideCursor(QCursor(Qt::WaitCursor));
+            installEventFilter(filter);
+
+            progressBar->show();
+            progressBar->setRange(0, 0);
+            thread->start();
+            return;
+        }
+    } else {
+        buf = image;
+        statusBar()->showMessage(tr("Display color image"));
+    }
+
+    if (large_image) {
+        qApp->setOverrideCursor(QCursor(Qt::WaitCursor));
+        installEventFilter(filter);
+    }
+
+    imageViewer->display(buf, true);
+    fitToWindowAct->setChecked(true);
+    fitToWindow();
+
+    if (large_image) {
+        removeEventFilter(filter);
+        qApp->restoreOverrideCursor();
+    }
 }
 
 void ImageViewer::toggleBilinearTransform(bool enable)
