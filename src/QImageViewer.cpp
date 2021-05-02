@@ -213,16 +213,17 @@ void QImageViewer::mouseMoveEvent(QMouseEvent* e)
             last_pos_[2] = pos.x();
             last_pos_[3] = pos.y();
             this->drawDragLine();
-        }
-        auto width = pixmap_->pixmap().width();
-        auto height = pixmap_->pixmap().height();
-        if (scene_pos.x() < 0 || scene_pos.y() < 0
-            || scene_pos.x() >= width || scene_pos.y() >= height) {
-            emit pixelValueOnCursor(-1, -1, 0, 0, 0);
-        } else {
-            int r, g, b;
-            pixmap_->pixmap().toImage().pixelColor(pos).getRgb(&r, &g, &b);
-            emit pixelValueOnCursor(pos.x(), pos.y(), r, g, b);
+        } else if (dragMode() == QGraphicsView::NoDrag) {
+            auto width = pixmap_->pixmap().width();
+            auto height = pixmap_->pixmap().height();
+            if (scene_pos.x() < 0 || scene_pos.y() < 0
+                || scene_pos.x() >= width || scene_pos.y() >= height) {
+                emit pixelValueOnCursor(-1, -1, 0, 0, 0);
+            } else {
+                int r, g, b;
+                pixmap_->pixmap().toImage().pixelColor(pos).getRgb(&r, &g, &b);
+                emit pixelValueOnCursor(pos.x(), pos.y(), r, g, b);
+            }
         }
     }
     //else {
@@ -245,6 +246,7 @@ void QImageViewer::mousePressEvent(QMouseEvent* e)
         } else {
             setDragMode(QGraphicsView::ScrollHandDrag);
         }
+        emit pixelValueOnCursor(-1, -1, 0, 0, 0);
     }
     QGraphicsView::mousePressEvent(e);
 }
