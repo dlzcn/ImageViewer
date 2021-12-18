@@ -194,6 +194,45 @@ void QImageViewer::update()
     }
 }
 
+void QImageViewer::fitInView(const QRectF &rect, Qt::AspectRatioMode aspectRatioMode)
+{
+    if (!scene() || rect.isNull())
+        return;
+
+    // Reset the view scale to 1:1.
+    QRectF unity = transform().mapRect(QRectF(0, 0, 1, 1));
+    if (unity.isEmpty())
+        return;
+    scale(1 / unity.width(), 1 / unity.height());
+
+    // Find the ideal x / y scaling ratio to fit \a rect in the view.
+    // remove wired margin
+    QRectF viewRect = viewport()->rect();
+    if (viewRect.isEmpty())
+        return;
+    QRectF sceneRect = transform().mapRect(rect);
+    if (sceneRect.isEmpty())
+        return;
+    qreal xratio = viewRect.width() / sceneRect.width();
+    qreal yratio = viewRect.height() / sceneRect.height();
+
+    // Respect the aspect ratio mode.
+    switch (aspectRatioMode) {
+    case Qt::KeepAspectRatio:
+        xratio = yratio = qMin(xratio, yratio);
+        break;
+    case Qt::KeepAspectRatioByExpanding:
+        xratio = yratio = qMax(xratio, yratio);
+        break;
+    case Qt::IgnoreAspectRatio:
+        break;
+    }
+
+    // Scale and center on the center of \a rect.
+    scale(xratio, yratio);
+    centerOn(rect.center());
+}
+
 void QImageViewer::mouseDoubleClickEvent(QMouseEvent* e)
 {
     if (e->button() == Qt::LeftButton) {

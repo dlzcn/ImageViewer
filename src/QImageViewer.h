@@ -12,6 +12,8 @@ public:
     QImageViewer(QWidget *parent, bool useGL = false);
     ~QImageViewer();
 
+    void fitInView(const QRectF &rect, Qt::AspectRatioMode aspectRadioMode = Qt::IgnoreAspectRatio);
+
     void update(int width, int height); // set a blank image (best fit)
     void display(const QPixmap& pixmap, bool update = false);
     void display(const QImage& img, bool update = false);
