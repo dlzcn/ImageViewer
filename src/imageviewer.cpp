@@ -367,7 +367,7 @@ void ImageViewer::createActions()
 
     editMenu->addSeparator();
 
-    launchAct = editMenu->addAction(tr("Ope&n Containing Folder"), this, &ImageViewer::openImagePath);
+    launchAct = editMenu->addAction(tr("Ope&n Containing Folder"), this, &ImageViewer::openContainingFolder);
     launchAct->setShortcut(QKeySequence::fromString("Ctrl+N"));
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
@@ -436,7 +436,7 @@ void ImageViewer::updatePixelValueOnCursor(int x, int y, int r, int g, int b)
     }
 }
 
-void ImageViewer::openImagePath()
+void ImageViewer::openContainingFolder()
 {
     if (!QFileInfo::exists(filePath)) {
         qDebug() << filePath << " not exists";
