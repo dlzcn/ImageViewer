@@ -93,7 +93,7 @@ private slots:
     void fitToWindow();
     void about();
     void updatePixelValueOnCursor(int x, int y, int r, int g, int b);
-    void openImagePath();
+    void openContainingFolder();
 
     void displayImage(bool enable);
     void displayImage(const QPixmap& image);

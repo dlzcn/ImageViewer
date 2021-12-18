@@ -85,6 +85,7 @@ ImageViewer::ImageViewer(QWidget *parent)
    , imageViewer(new QImageViewer(nullptr))
    , imgPixVal(nullptr)
 {
+    imageViewer->setFrameStyle(QFrame::NoFrame);
     setting = new QSettings(
         QSettings::NativeFormat,
         QSettings::UserScope,
@@ -366,7 +367,7 @@ void ImageViewer::createActions()
 
     editMenu->addSeparator();
 
-    launchAct = editMenu->addAction(tr("Ope&n Path"), this, &ImageViewer::openImagePath);
+    launchAct = editMenu->addAction(tr("Ope&n Containing Folder"), this, &ImageViewer::openImagePath);
     launchAct->setShortcut(QKeySequence::fromString("Ctrl+N"));
 
     QMenu *viewMenu = menuBar()->addMenu(tr("&View"));
@@ -446,7 +447,7 @@ void ImageViewer::openImagePath()
 
     QDesktopServices::openUrl(QUrl::fromLocalFile(dir.absolutePath()));
 
-    statusBar()->showMessage(tr("Open path \"%1\"").arg(dir.absolutePath()));
+    statusBar()->showMessage(tr("Open containing folder \"%1\"").arg(dir.absolutePath()));
 }
 
 void ImageViewer::displayImage(bool)
