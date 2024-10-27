@@ -1,4 +1,7 @@
+#include <math.h>
+#include <emmintrin.h>
 #include "imageopstask.h"
+
 
 QImage splitRGBImage(const QImage &inputImage)
 {
